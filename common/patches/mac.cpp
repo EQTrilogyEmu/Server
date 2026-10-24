@@ -377,7 +377,7 @@ namespace Mac {
 		delete out;
 		result->SetPacket(&outapp, reliable);
 	}
-	
+
 	ENCODE(OP_ItemLinkResponse) {  ENCODE_FORWARD(OP_ItemPacket); }
 	ENCODE(OP_ItemPacket) 
 	{

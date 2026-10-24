@@ -2296,6 +2296,14 @@ void EntityList::MessageStatus(uint32 to_guild_id, int to_minstatus, uint32 type
 // works much like MessageClose, but with formatted strings
 void EntityList::MessageClose_StringID(Mob *sender, bool skipsender, float dist, uint32 type, uint32 string_id, const char* message1,const char* message2,const char* message3,const char* message4,const char* message5,const char* message6,const char* message7,const char* message8,const char* message9)
 {
+	if (type == Chat::MeleeCrit || type == Chat::SpellCrit) {
+		FilteredMessageClose_StringID(sender, skipsender, dist, type,
+			type == Chat::MeleeCrit ? FilterMeleeCrits : FilterSpellCrits, string_id,
+			message1, message2, message3, message4, message5,
+			message6, message7, message8, message9);
+		return;
+	}
+
 	Client *c;
 	float dist2 = dist * dist;
 
@@ -2304,6 +2312,24 @@ void EntityList::MessageClose_StringID(Mob *sender, bool skipsender, float dist,
 		if(c && DistanceSquared(c->GetPosition(), sender->GetPosition()) <= dist2 && (!skipsender || c != sender))
 			c->Message_StringID(type, string_id, message1, message2, message3, message4, message5, message6, message7, message8, message9);
 	}
+}
+
+// Send one string argument and let the client apply its spell/bard text filter.
+void EntityList::SpellTextMessageClose_StringID(Mob *sender, bool skipsender,
+		float dist, uint32 string_id, const char *message)
+{
+	if (!sender || !message)
+		return;
+
+	const size_t message_size = strlen(message) + 1;
+	auto outapp = new EQApplicationPacket(OP_SpellTextMessageStringID,
+		sizeof(SpellTextMessageStringID_Struct) + message_size);
+	auto text = reinterpret_cast<SpellTextMessageStringID_Struct *>(outapp->pBuffer);
+	text->entity_id = sender->GetID();
+	text->string_id = string_id;
+	memcpy(text->message, message, message_size);
+	QueueCloseClients(sender, outapp, skipsender, dist, nullptr, true);
+	safe_delete(outapp);
 }
 
 void EntityList::FilteredMessageClose_StringID(Mob *sender, bool skipsender,
